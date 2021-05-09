@@ -1,19 +1,19 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-/// add(a, b, /)
-/// --
-///
-/// This function adds two unsigned 64-bit integers.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
+mod database;
+mod models;
+mod registration;
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pokecord_backend(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    let submod = PyModule::new(py, "registration")?;
+    registration::init_submodule(submod)?;
+    m.add_submodule(submod)?;
 
+    let submod = PyModule::new(py, "models")?;
+    models::init_submodule(submod)?;
+    m.add_submodule(submod)?;
     Ok(())
 }
