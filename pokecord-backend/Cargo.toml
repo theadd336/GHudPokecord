@@ -1,0 +1,15 @@
+[package]
+name = "pokecord-backend"
+version = "0.1.0"
+authors = ["Paul Addonizio <pauladdonizio@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.13"
+features = ["extension-module"]
+
