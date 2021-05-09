@@ -1,0 +1,28 @@
+---
+    version: '3'
+    
+    volumes:
+        pokecord-mongodata:
+    
+    services:
+        pokecord-db:
+            image: mongo:4.4
+            container_name: pokecord-db
+            environment: 
+                - MONGO_INITDB_DATABASE=master # database name
+                - MONGO_INITDB_ROOT_USERNAME=admin # root username
+                - MONGO_INITDB_ROOT_PASSWORD=secret # root password
+            volumes: 
+                - pokecord-mongodata:/data/db
+            ports:
+                - "127.0.0.1:27017-27019:27017-27019"
+        
+        pokecord:
+            container_name: pokecord
+            build:
+                context: .
+                dockerfile: Dockerfile.local
+            volumes:
+                - /app/target
+                - .:/app
+    
