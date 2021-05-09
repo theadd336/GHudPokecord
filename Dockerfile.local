@@ -5,7 +5,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Build Rust library
 WORKDIR /app/pokecord-backend
-RUN mkdir -p /app/pokecord-discord
+RUN mkdir -p /app/pokecord
 COPY pokecord-backend/Cargo.toml .
 COPY pokecord-backend/src ./src
 RUN cargo build
