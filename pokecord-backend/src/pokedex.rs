@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use reqwest::Client;
 use serde::{Serialize, de::DeserializeOwned};
 use url::Url;
@@ -91,14 +93,15 @@ impl Pokedex {
             // TODO: log/track hit/miss rate
             Ok(cached)
         } else {
-            let result = self.client.get(url).send().await?.error_for_status()?.json().await?;
+            let result = self.client.get(url).send().await?.error_for_status()?;
+            let json = result.json().await?;
 
-            if let Err(err) = self.cache.put(&cache_key, &result).await {
+            if let Err(err) = self.cache.put(&cache_key, &json, Duration::from_secs(3600)).await {
                 // TODO: log cache update error
                 eprintln!("Cache update failed: {}", err);
             }
 
-            Ok(result)
+            Ok(json)
         }
     }
 }

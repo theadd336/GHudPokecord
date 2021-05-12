@@ -9,6 +9,8 @@ pub enum Error {
     Filesystem(#[from] std::io::Error),
     #[error("JSON error")]
     Json(#[from] serde_json::Error),
+    #[error("Cache serialization failed")]
+    CacheSerialization(#[from] bincode::Error),
 }
 
 impl PyErrArguments for Error {

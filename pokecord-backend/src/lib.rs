@@ -3,6 +3,8 @@ use pyo3::{wrap_pyfunction, create_exception};
 
 use pokedex::{Pokedex, Pokemon};
 
+use crate::pokedex::PokemonSpecies;
+
 mod pokedex;
 
 create_exception!(pokecord_backend, PokedexError, pyo3::exceptions::PyException);
@@ -22,6 +24,13 @@ fn list_pokemon() -> PyResult<Vec<String>> {
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
         let mut client = Pokedex::new();
+
+        println!("Species (raw name):");
+        let all_species = client.list::<PokemonSpecies>().await?;
+        for species in all_species.iter() {
+            println!("- {}", species.name);
+        }
+
         let pokemon = client.get_by_name::<Pokemon>("mudkip").await.expect("No mudkip?");
         dbg!(&pokemon);
 
@@ -36,7 +45,7 @@ fn list_pokemon() -> PyResult<Vec<String>> {
             println!("- {}", flavor_text.flavor_text);
         }
         
-        Ok(vec![])
+        Ok(all_species.into_iter().map(|s| s.name).collect())
     })
 }
 
