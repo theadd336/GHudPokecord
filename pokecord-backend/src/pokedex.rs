@@ -49,6 +49,15 @@ impl Pokedex {
         self.get(url).await
     }
 
+    /// Get an API resource by ID.
+    pub async fn get_by_id<T: ApiResource + Serialize + DeserializeOwned>(
+        &mut self,
+        id: usize,
+    ) -> Result<T, Error> {
+        let url = T::base_url().join(&id.to_string()).expect("Malformed resource name");
+        self.get(url).await
+    }
+
     /// Get an API resource using a reference from another resource.
     pub async fn get_by_ref<T: ApiResource + Serialize + DeserializeOwned>(
         &mut self,
@@ -198,6 +207,12 @@ impl Pokedex {
             }
         }
     }
+}
+
+/// Returns the image URL for a Pokemon ID
+pub fn image_url(id: usize) -> Url {
+    Url::parse(&format!("https://assets.pokemon.com/assets/cms2/img/pokedex/full/{:03}.png", id))
+        .expect("Generated an invalid image URL")
 }
 
 fn api_url(path: &str) -> Url {

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
 
@@ -31,35 +29,29 @@ fn list_pokemon() -> PyResult<Vec<String>> {
     rt.block_on(async {
         let mut client = Pokedex::new();
 
-        println!("Species (raw name):");
         let all_species = client.list::<PokemonSpecies>().await?;
-        for species in all_species.iter() {
-            println!("- {}", species.name);
-        }
 
         let pokemon = client
-            .get_by_name::<Pokemon>("mudkip")
+            // .get_by_name::<Pokemon>("mudkip")
+            .get_by_id::<Pokemon>(12)
             .await
-            .expect("No mudkip?");
-        dbg!(&pokemon);
+            .expect("Could not get Pokemon!");
+        tracing::info!("{:?}", pokemon);
+        tracing::info!("Image URL: {}", pokedex::image_url(pokemon.id));
 
         let species = client
             .get_by_ref(&pokemon.species)
             .await
             .expect("No species");
-        println!("Species name: {}", species.name);
-        for name in species.names.iter().filter(|n| n.language.name == "en") {
-            println!("- {}", name.name);
-        }
 
-        println!("Flavor text:");
-        for flavor_text in species
-            .flavor_text_entries
-            .iter()
-            .filter(|f| f.language.name == "en")
-        {
-            println!("- {}", flavor_text.flavor_text);
-        }
+        let name = species.names.iter().find_map(|n| {
+            if n.language.name == "en" {
+                Some(n.name.as_str())
+            } else {
+                None
+            }
+        });
+        tracing::info!("Species name: {}", name.unwrap_or("<unknown>"));
 
         Ok(all_species.into_iter().map(|s| s.name).collect())
     })
@@ -69,9 +61,9 @@ fn list_pokemon() -> PyResult<Vec<String>> {
 #[pymodule]
 fn pokecord_backend(py: Python, m: &PyModule) -> PyResult<()> {
     tracing_subscriber::fmt()
-        .with_max_level(Level::TRACE)
+        .with_max_level(Level::INFO)
         .with_ansi(true)
-        .pretty()
+        // .pretty()
         .init();
     tracing::info!("PokeCord Backend {}", env!("CARGO_PKG_VERSION"));
 

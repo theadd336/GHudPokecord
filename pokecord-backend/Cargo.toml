@@ -16,7 +16,6 @@ sha3 = "0.9"
 thiserror = "1.0"
 tracing = "0.1.26"
 tracing-subscriber = "0.2.18"
-pyo3-asyncio = "0.13.3"
 
 [dependencies.bytes]
 version = "1"

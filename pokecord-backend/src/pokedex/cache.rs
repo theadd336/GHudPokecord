@@ -38,9 +38,7 @@ impl Cache {
     }
 
     pub fn with_dir<P: Into<PathBuf>>(dir: P) -> Cache {
-        Cache {
-            dir: dir.into(),
-        }
+        Cache { dir: dir.into() }
     }
 
     /// Builds a cache key from a URL. This key can be used to retrieve and update the cache's stored result for that URL.
