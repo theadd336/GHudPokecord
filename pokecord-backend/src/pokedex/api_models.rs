@@ -1,7 +1,4 @@
-use std::{
-    fmt::Debug,
-    marker::PhantomData,
-};
+use std::{fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -23,7 +20,7 @@ pub struct Page<T: ApiResource> {
     /// The URL for the previous page in the list.
     pub previous: Option<Url>,
     /// A list of named API resources.
-    pub results: Vec<NamedResource<T>>
+    pub results: Vec<NamedResource<T>>,
 }
 
 /// A named PokeAPI resource. This is typed to indicate what kind of API resource it points to.
@@ -34,7 +31,7 @@ pub struct NamedResource<T: ApiResource> {
     pub url: Url,
     /// Tells the compiler that this type acts like it points to a `T`
     #[serde(skip_serializing, default)]
-    _typ: PhantomData<fn() -> T>
+    _typ: PhantomData<fn() -> T>,
 }
 
 /// A localized name for a resource. See [`Name`](https://pokeapi.co/docs/v2#name)
@@ -59,7 +56,6 @@ pub struct Language {
     pub iso3166: String,
     /// The name of this resource listed in different languages.
     pub names: Vec<Name>,
-
 }
 
 /// A Pokemon. See [the API](https://pokeapi.co/docs/v2#pokemon).

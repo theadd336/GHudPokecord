@@ -1,34 +1,35 @@
-use std::{fmt::Write, time::{Duration, SystemTime}};
-use std::path::PathBuf;
+use std::{fmt::Write, io::ErrorKind, path::PathBuf};
 
-use serde::{de::DeserializeOwned, Serialize, Deserialize};
-use sha3::{Sha3_384, Digest};
-use tokio::{fs::{self, File}, io::{AsyncReadExt, AsyncWriteExt}};
+use bytes::Bytes;
+use http_cache_semantics::CachePolicy;
+use serde::{Deserialize, Serialize};
+use sha3::{Digest, Sha3_384};
+use tokio::fs;
 use url::Url;
 
 use super::Error;
 
-/// Filesystem-backed, URL-addressed cache for static API resources. The caching scheme is fairly simple,
-/// since PokeAPI is read-only and we assume that Pokemon data doesn't change often.
+/// Filesystem-backed, URL-addressed cache for HTTP requests.
 ///
 /// ## TODOs:
 /// * In-memory cache on top of filesystem cache
+#[derive(Debug)]
 pub struct Cache {
     dir: PathBuf,
-    /// Shared buffer to reuse when reading from cache
-    buf: Vec<u8>,
 }
 
 /// Version prefix included in filenames to allow backwards-incompatible changes to the on-disk cache layout.
-const VERSION: &str = "v1";
+const VERSION: &str = "v2";
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct CacheKey(PathBuf);
 
 #[derive(Deserialize, Serialize)]
-struct Wrapper<T> {
-    /// Date at which this cache entry expires, in milliseconds since the UNIX epoch.
-    expiry_epoch_secs: u64,
-    value: T,
+pub struct Entry {
+    /// Policy this entry was cached with
+    pub cache_policy: CachePolicy,
+    /// The cached response body
+    pub body: Bytes,
 }
 
 impl Cache {
@@ -37,7 +38,9 @@ impl Cache {
     }
 
     pub fn with_dir<P: Into<PathBuf>>(dir: P) -> Cache {
-        Cache { dir: dir.into().join(VERSION), buf: Vec::new() }
+        Cache {
+            dir: dir.into(),
+        }
     }
 
     /// Builds a cache key from a URL. This key can be used to retrieve and update the cache's stored result for that URL.
@@ -47,61 +50,36 @@ impl Cache {
         for byte in hash {
             let _ = write!(&mut name, "{:02x}", byte);
         }
-        CacheKey(self.dir.join(name))
+        CacheKey(self.dir.join(VERSION).join(name))
     }
 
-    pub async fn get<T: DeserializeOwned>(&mut self, key: &CacheKey) -> Option<T> {
-        self.buf.clear();
-        Self::get_raw(key, &mut self.buf).await.ok()?;
-        let wrapper: Wrapper<T> = bincode::deserialize(&self.buf).ok()?;
-        wrapper.if_unexpired()
+    /// Retrieve a raw cache entry
+    #[tracing::instrument]
+    pub async fn get(&mut self, key: &CacheKey) -> Result<Option<Entry>, Error> {
+        let data = match fs::read(&key.0).await {
+            Ok(data) => data,
+            Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+
+        let entry: Entry = bincode::deserialize(&data)?;
+        tracing::debug!("Read {} bytes from cache", entry.body.len());
+        Ok(Some(entry))
     }
 
-    pub async fn put<T: Serialize>(&mut self, key: &CacheKey, value: &T, ttl: Duration) -> Result<(), Error> {
-        let data = bincode::serialize(&Wrapper::with_ttl(value, ttl))?;
-        self.put_raw(key, &data).await?;
-        Ok(())
-    }
-
-    async fn put_raw(&mut self, key: &CacheKey, buf: &[u8]) -> Result<(), Error> {
+    /// Update a raw cache entry
+    #[tracing::instrument(skip(value))]
+    pub async fn put(&mut self, key: &CacheKey, value: &Entry) -> Result<(), Error> {
+        tracing::debug!("Caching {} bytes", value.body.len());
+        let data = bincode::serialize(value)?;
         fs::create_dir_all(&self.dir).await?;
-        let mut file = File::create(&key.0).await?;
-        file.write_all(&buf).await?;
-        Ok(())
-    }
-
-    async fn get_raw(key: &CacheKey, buf: &mut Vec<u8>) -> Result<(), Error> {
-        let mut file = File::open(&key.0).await?;
-        file.read_to_end(buf).await?;
+        fs::write(&key.0, data).await?;
         Ok(())
     }
 }
 
-impl <T> Wrapper<T> {
-    fn new(value: T, expiry: SystemTime) -> Wrapper<T> {
-        Wrapper {
-            value,
-            expiry_epoch_secs: expiry.duration_since(SystemTime::UNIX_EPOCH).expect("Invalid expiry").as_secs(),
-        }
-    }
-
-    fn with_ttl(value: T, ttl: Duration) -> Wrapper<T> {
-        Wrapper::new(value, SystemTime::now() + ttl)
-    }
-
-    fn expiry_time(&self) -> SystemTime {
-        SystemTime::UNIX_EPOCH + Duration::from_secs(self.expiry_epoch_secs)
-    }
-
-    fn is_expired(&self) -> bool {
-        self.expiry_time() >= SystemTime::now()
-    }
-
-    fn if_unexpired(self) -> Option<T> {
-        if self.is_expired() {
-            None
-        } else {
-            Some(self.value)
-        }
+impl Entry {
+    pub fn new(body: Bytes, cache_policy: CachePolicy) -> Entry {
+        Entry { cache_policy, body }
     }
 }

@@ -19,4 +19,4 @@ build-macos:
 .PHONY: run-macos
 run-macos: build-macos
 	cp ./pokecord-backend/target/debug/libpokecord_backend.dylib pokecord/pokecord_backend.so
-	PYTHONPATH=. python3.9 -m pokecord
+	RUST_LOG=debug PYTHONPATH=. python3.9 -m pokecord
