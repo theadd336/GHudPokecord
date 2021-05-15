@@ -41,7 +41,7 @@ impl Pokedex {
     }
 
     /// Get an API resource by name.
-    pub async fn get_by_name<T: ApiResource + Serialize + DeserializeOwned>(
+    pub async fn get_by_name<T: ApiResource>(
         &mut self,
         name: &str,
     ) -> Result<T, Error> {
@@ -50,7 +50,7 @@ impl Pokedex {
     }
 
     /// Get an API resource by ID.
-    pub async fn get_by_id<T: ApiResource + Serialize + DeserializeOwned>(
+    pub async fn get_by_id<T: ApiResource>(
         &mut self,
         id: usize,
     ) -> Result<T, Error> {
@@ -59,7 +59,7 @@ impl Pokedex {
     }
 
     /// Get an API resource using a reference from another resource.
-    pub async fn get_by_ref<T: ApiResource + Serialize + DeserializeOwned>(
+    pub async fn get_by_ref<T: ApiResource>(
         &mut self,
         reference: &NamedResource<T>,
     ) -> Result<T, Error> {
@@ -67,7 +67,7 @@ impl Pokedex {
     }
 
     /// Read an entire resource list. This may be expensive.
-    pub async fn list<T: ApiResource + Serialize + DeserializeOwned>(
+    pub async fn list<T: ApiResource>(
         &mut self,
     ) -> Result<Vec<NamedResource<T>>, Error> {
         let mut acc = Vec::new();
@@ -89,7 +89,7 @@ impl Pokedex {
 
     /// Paginate over a resource list. The cursor allows either starting at a particular offset or continuing
     /// from a previous request. Reverse pagination is currently not supported.
-    async fn page_list<T: ApiResource + Serialize + DeserializeOwned>(
+    async fn page_list<T: ApiResource>(
         &mut self,
         cursor: Cursor,
     ) -> Result<(Vec<NamedResource<T>>, Option<Cursor>), Error> {

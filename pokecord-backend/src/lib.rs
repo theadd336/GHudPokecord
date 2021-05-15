@@ -23,6 +23,7 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
+// This is an example of using the Pokemon API. It creates its own Tokio runtime and is generally pretty janky.
 #[pyfunction]
 fn list_pokemon() -> PyResult<Vec<String>> {
     let rt = tokio::runtime::Runtime::new()?;

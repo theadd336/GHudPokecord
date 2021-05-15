@@ -1,3 +1,5 @@
+//! Types for deserializing PokeAPI responses.
+
 use std::{fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
@@ -5,7 +7,9 @@ use url::Url;
 
 use super::api_url;
 
-pub trait ApiResource: Debug + Clone + PartialEq + Eq {
+/// A resource in the PokeAPI. Types implementing this trait can be automatically looked up by name/id
+/// and paginated over.
+pub trait ApiResource: Debug + Clone + PartialEq + Eq + for<'de> Deserialize<'de> + Serialize {
     /// The base URL for this API resource type
     fn base_url() -> Url;
 }
@@ -20,6 +24,7 @@ pub struct Page<T: ApiResource> {
     /// The URL for the previous page in the list.
     pub previous: Option<Url>,
     /// A list of named API resources.
+    #[serde(bound(deserialize = "Vec<NamedResource<T>>: Deserialize<'de>"))]
     pub results: Vec<NamedResource<T>>,
 }
 
