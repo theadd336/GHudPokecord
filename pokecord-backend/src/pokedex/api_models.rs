@@ -9,6 +9,8 @@ use super::api_url;
 
 /// A resource in the PokeAPI. Types implementing this trait can be automatically looked up by name/id
 /// and paginated over.
+// According to https://serde.rs/lifetimes.html, we have to use this `for`-qualified lifetime instead of
+// requiring DeserializeOwned or Deserialize<'static>
 pub trait ApiResource: Debug + Clone + PartialEq + Eq + for<'de> Deserialize<'de> + Serialize {
     /// The base URL for this API resource type
     fn base_url() -> Url;
@@ -25,6 +27,8 @@ pub struct Page<T: ApiResource> {
     pub previous: Option<Url>,
     /// A list of named API resources.
     #[serde(bound(deserialize = "Vec<NamedResource<T>>: Deserialize<'de>"))]
+    // This bound is so that the Deserialize macro doesn't get confused about T
+    // See https://serde.rs/attr-bound.html
     pub results: Vec<NamedResource<T>>,
 }
 
