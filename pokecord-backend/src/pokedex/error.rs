@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::PyErrArguments;
 
+/// PokeAPI error
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("HTTP request failed")]

@@ -33,10 +33,12 @@ pub struct Entry {
 }
 
 impl Cache {
+    /// Create a new cache that stores files in the default directory.
     pub fn new() -> Cache {
         Cache::with_dir(".pokecache")
     }
 
+    /// Create a new cache that stores files in the given directory.
     pub fn with_dir<P: Into<PathBuf>>(dir: P) -> Cache {
         Cache { dir: dir.into() }
     }

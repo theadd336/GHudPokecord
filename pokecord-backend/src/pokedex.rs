@@ -16,13 +16,16 @@ use crate::pokedex::cache::Entry;
 
 use self::cache::Cache;
 
+/// Base URL for all PokeAPI endpoints.
 const API_BASE: &str = "https://pokeapi.co/api/v2/";
 
+/// A PokeAPI client.
 pub struct Pokedex {
     client: Client,
     cache: Cache,
 }
 
+/// Cursor for paginating through an API list.
 pub enum Cursor {
     Begin {
         url: Url,
@@ -33,6 +36,7 @@ pub enum Cursor {
 }
 
 impl Pokedex {
+    /// Create a new PokeAPI client with the default HTTP client and cache settings.
     pub fn new() -> Pokedex {
         Pokedex {
             client: Client::new(),
@@ -113,6 +117,7 @@ impl Pokedex {
         Ok((page.results, next_cursor))
     }
 
+    /// Make a cache-aware HTTP GET request for `url`.
     #[tracing::instrument(skip(self), fields(url = %url))]
     async fn get<T: Serialize + DeserializeOwned>(&mut self, url: Url) -> Result<T, Error> {
         let cache_key = self.cache.cache_key(&url);
@@ -215,6 +220,7 @@ pub fn image_url(id: usize) -> Url {
         .expect("Generated an invalid image URL")
 }
 
+/// Turn a relative path for an API endpoint into a fully-qualified URL.
 fn api_url(path: &str) -> Url {
     Url::parse(API_BASE)
         .unwrap()
