@@ -3,7 +3,7 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3_asyncio::tokio;
+use pyo3_asyncio::tokio as pytokio;
 use pyo3_log;
 
 mod database;
@@ -25,7 +25,7 @@ fn test_logging() {
 #[pymodule]
 fn pokecord_backend(py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
-    tokio::init_multi_thread();
+    pytokio::init_multi_thread();
     pyo3_asyncio::try_init(py)?;
     m.add_function(wrap_pyfunction!(test_logging, m)?)?;
     let submod = PyModule::new(py, "registration")?;

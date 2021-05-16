@@ -5,7 +5,7 @@
 
 use crate::models::Pokemon;
 use pyo3::prelude::*;
-use pyo3_asyncio::tokio;
+use pyo3_asyncio::tokio as pytokio;
 
 mod handlers;
 
@@ -24,7 +24,7 @@ pub fn init_submodule(module: &PyModule) -> PyResult<()> {
 #[pyfunction]
 #[text_signature = "(player_id, /)"]
 fn register_player(py: Python, player_id: &str) -> PyResult<PyObject> {
-    tokio::into_coroutine(py, async move { Python::with_gil(|py| Ok(py.None())) })
+    pytokio::into_coroutine(py, async move { Python::with_gil(|py| Ok(py.None())) })
 }
 
 /// Fetches the starter pokemon list.
