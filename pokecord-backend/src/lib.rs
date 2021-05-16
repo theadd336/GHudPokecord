@@ -1,19 +1,39 @@
+//! The pokecord backend library. All business logic and database access for
+//! the pokecord discord frontend exists here.
+
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use pyo3_asyncio::tokio as pytokio;
+use pyo3_log;
 
-/// add(a, b, /)
-/// --
-///
-/// This function adds two unsigned 64-bit integers.
+mod database;
+mod models;
+mod registration;
+
+/// Test function that tests logging at different levels to confirm config.
 #[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+fn test_logging() {
+    log::debug!("This is a debug message.");
+    log::info!("This is an info message");
+    log::warn!("This is a warning message");
+    log::error!("This is an error message");
 }
 
-/// A Python module implemented in Rust.
+/// Main entry point for all python code. This function represents the
+/// root Python module. All submodules should be added here.
+/// TODO: Another macro maybe?
 #[pymodule]
 fn pokecord_backend(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    pyo3_log::init();
+    pytokio::init_multi_thread();
+    pyo3_asyncio::try_init(py)?;
+    m.add_function(wrap_pyfunction!(test_logging, m)?)?;
+    let submod = PyModule::new(py, "registration")?;
+    registration::init_submodule(submod)?;
+    m.add_submodule(submod)?;
 
+    let submod = PyModule::new(py, "models")?;
+    models::init_submodule(submod)?;
+    m.add_submodule(submod)?;
     Ok(())
 }
