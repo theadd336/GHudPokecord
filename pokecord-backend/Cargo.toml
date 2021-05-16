@@ -9,7 +9,19 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib"]
 
+[dependencies]
+log = "0.4"
+mongodb = "1.2"
+pyo3-log = "0.3"
+
+[dependencies.tokio]
+version = "1"
+features = ["rt-multi-thread", "macros"]
+
 [dependencies.pyo3]
 version = "0.13"
 features = ["extension-module"]
 
+[dependencies.pyo3-asyncio]
+version = "0.13"
+features = ["tokio-runtime", "attributes"]
