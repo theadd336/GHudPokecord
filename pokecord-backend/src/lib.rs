@@ -5,7 +5,6 @@ use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
 use pyo3_asyncio::tokio as pytokio;
 use pyo3_log;
-use tracing::Level;
 
 use crate::pokedex::{Pokedex, Pokemon, PokemonSpecies};
 
@@ -31,38 +30,14 @@ fn test_logging() {
     log::error!("This is an error message");
 }
 
-// This is an example of using the Pokemon API. It creates its own Tokio runtime and is generally pretty janky.
+// This lists out all pokemon by name
 #[pyfunction]
-fn list_pokemon() -> PyResult<Vec<String>> {
-    let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async {
+fn list_pokemon(py: Python) -> PyResult<PyObject> {
+    pytokio::into_coroutine(py, async {
         let mut client = Pokedex::new();
-
-        let all_species = client.list::<PokemonSpecies>().await?;
-
-        let pokemon = client
-            // .get_by_name::<Pokemon>("mudkip")
-            .get_by_id::<Pokemon>(12)
-            .await
-            .expect("Could not get Pokemon!");
-        tracing::info!("{:?}", pokemon);
-        tracing::info!("Image URL: {}", pokedex::image_url(pokemon.id));
-
-        let species = client
-            .get_by_ref(&pokemon.species)
-            .await
-            .expect("No species");
-
-        let name = species.names.iter().find_map(|n| {
-            if n.language.name == "en" {
-                Some(n.name.as_str())
-            } else {
-                None
-            }
-        });
-        tracing::info!("Species name: {}", name.unwrap_or("<unknown>"));
-
-        Ok(all_species.into_iter().map(|s| s.name).collect())
+        let all_pokemon = client.list::<Pokemon>().await?;
+        let names: Vec<_> = all_pokemon.into_iter().map(|s| s.name).collect();
+        Ok(Python::with_gil(|py| names.into_py(py)))
     })
 }
     

@@ -1,4 +1,4 @@
-use std::{fmt::Write, io::ErrorKind, path::PathBuf};
+use std::{fmt::{self, Display, Write}, io::ErrorKind, path::PathBuf};
 
 use bytes::Bytes;
 use http_cache_semantics::CachePolicy;
@@ -54,27 +54,37 @@ impl Cache {
     }
 
     /// Retrieve a raw cache entry
-    #[tracing::instrument]
     pub async fn get(&mut self, key: &CacheKey) -> Result<Option<Entry>, Error> {
+        log::debug!("Fetching {} from cache", key);
         let data = match fs::read(&key.0).await {
             Ok(data) => data,
-            Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
-            Err(err) => return Err(err.into()),
+            Err(err) if err.kind() == ErrorKind::NotFound => {
+                log::trace!("Cache miss for {}", key);
+                return Ok(None)
+            },
+            Err(err) => {
+                log::warn!("Cache read error for {}: {}", key, err);
+                return Err(err.into());
+            },
         };
 
         let entry: Entry = bincode::deserialize(&data)?;
-        tracing::debug!("Read {} bytes from cache", entry.body.len());
         Ok(Some(entry))
     }
 
     /// Update a raw cache entry
-    #[tracing::instrument(skip(value))]
     pub async fn put(&mut self, key: &CacheKey, value: &Entry) -> Result<(), Error> {
-        tracing::debug!("Caching {} bytes", value.body.len());
+        log::debug!("Writing {}-byte cache entry for {}", value.body.len(), key);
         let data = bincode::serialize(value)?;
         fs::create_dir_all(&self.dir).await?;
         fs::write(&key.0, data).await?;
         Ok(())
+    }
+}
+
+impl fmt::Display for CacheKey {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.display().fmt(f)
     }
 }
 

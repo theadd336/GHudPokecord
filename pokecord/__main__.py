@@ -12,6 +12,11 @@ async def main():
     b = await pokecord_backend.registration.register_player("HI")
     print(b)
 
+    pokemon = await pokecord_backend.list_pokemon()
+    print("Some pokemon:")
+    for name in pokemon[:20]:
+        print(f"- {name}")
+
 
 def shutdown_loop(loop: AbstractEventLoop):
     """Shuts down the running event loop. This code is duplicated from

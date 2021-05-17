@@ -118,23 +118,24 @@ impl Pokedex {
     }
 
     /// Make a cache-aware HTTP GET request for `url`.
-    #[tracing::instrument(skip(self), fields(url = %url))]
     async fn get<T: Serialize + DeserializeOwned>(&mut self, url: Url) -> Result<T, Error> {
+        log::debug!("Fetching {}", url);
+
         let cache_key = self.cache.cache_key(&url);
         let mut req = self.client.get(url.clone()).build()?;
 
         match self.cache.get(&cache_key).await {
             Ok(Some(entry)) => {
                 let now = SystemTime::now();
-                tracing::debug!(age = ?entry.cache_policy.age(now), ttl = ?entry.cache_policy.time_to_live(now), "Found cache entry");
+                log::debug!("Found cache entry for {} with age = {:?}, ttl = {:?}", url, entry.cache_policy.age(now), entry.cache_policy.time_to_live(now));
                 match entry.cache_policy.before_request(&req, SystemTime::now()) {
                     // Cache was up to date, so use the value stored there
                     BeforeRequest::Fresh(_) => {
-                        tracing::debug!("Cached body is fresh");
+                        log::debug!("Can use fresh cache entry for {}", url);
                         Ok(serde_json::from_slice::<T>(&entry.body)?)
                     }
                     BeforeRequest::Stale { request, .. } => {
-                        tracing::debug!("Cached body is stale, will revalidate");
+                        log::debug!("Cache entry for {} is stale, will revalidate", url);
                         // Cache is stale, send a revalidation request - we only need to copy the revalidation headers
                         *req.headers_mut() = request.headers;
 
@@ -152,11 +153,11 @@ impl Pokedex {
                                 .after_response(&req, &res, SystemTime::now())
                             {
                                 AfterResponse::NotModified(policy, _) => {
-                                    tracing::debug!("Cached body is up to date");
+                                    log::debug!("Server says cache entry for {} is up to date", url);
                                     (policy, entry.body)
                                 }
                                 AfterResponse::Modified(policy, _) => {
-                                    tracing::debug!("Cached body was modified");
+                                    log::debug!("Server returned modified data for {}", url);
                                     (policy, res.bytes().await?)
                                 }
                             };
@@ -168,10 +169,10 @@ impl Pokedex {
                             if let Err(err) =
                                 self.cache.put(&cache_key, &Entry::new(bytes, policy)).await
                             {
-                                tracing::warn!(%err, "Cache update failed");
+                                log::warn!("Cache update for {} failed: {}", url, err);
                             }
                         } else {
-                            tracing::debug!("Request is not cacheable");
+                            log::debug!("Request for {} is not cacheable", url);
                         }
 
                         Ok(value)
@@ -180,7 +181,7 @@ impl Pokedex {
             }
             Ok(None) | Err(_) => {
                 // There's nothing in cache (or accessing it failed), we have to make a new request
-                tracing::debug!("No cache entry");
+                log::debug!("No cache entry for {}", url);
 
                 // .try_clone().unwrap() is safe because there's no request body
                 let res = self
@@ -202,10 +203,10 @@ impl Pokedex {
 
                 if policy.is_storable() {
                     if let Err(err) = self.cache.put(&cache_key, &Entry::new(bytes, policy)).await {
-                        tracing::warn!(%err, "Cache update failed");
+                        log::warn!("Cache update for {} failed: {}", url, err);
                     }
                 } else {
-                    tracing::debug!("Request is not cacheable");
+                    log::debug!("Request for {} is not cacheable", url);
                 }
 
                 Ok(value)
