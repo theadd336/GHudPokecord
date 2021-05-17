@@ -1,12 +1,18 @@
+//! The pokecord backend library. All business logic and database access for
+//! the pokecord discord frontend exists here.
+
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
-
-use pokedex::{Pokedex, Pokemon};
+use pyo3_asyncio::tokio as pytokio;
+use pyo3_log;
 use tracing::Level;
 
-use crate::pokedex::PokemonSpecies;
+use crate::pokedex::{Pokedex, Pokemon, PokemonSpecies};
 
+mod database;
+mod models;
 mod pokedex;
+mod registration;
 
 create_exception!(
     pokecord_backend,
@@ -14,13 +20,15 @@ create_exception!(
     pyo3::exceptions::PyException
 );
 
-/// add(a, b, /)
-/// --
-///
-/// This function adds two unsigned 64-bit integers.
+
+
+/// Test function that tests logging at different levels to confirm config.
 #[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+fn test_logging() {
+    log::debug!("This is a debug message.");
+    log::info!("This is an info message");
+    log::warn!("This is a warning message");
+    log::error!("This is an error message");
 }
 
 // This is an example of using the Pokemon API. It creates its own Tokio runtime and is generally pretty janky.
@@ -57,20 +65,24 @@ fn list_pokemon() -> PyResult<Vec<String>> {
         Ok(all_species.into_iter().map(|s| s.name).collect())
     })
 }
-
-/// A Python module implemented in Rust.
+    
+/// Main entry point for all python code. This function represents the
+/// root Python module. All submodules should be added here.
+/// TODO: Another macro maybe?
 #[pymodule]
 fn pokecord_backend(py: Python, m: &PyModule) -> PyResult<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .with_ansi(true)
-        // .pretty()
-        .init();
-    tracing::info!("PokeCord Backend {}", env!("CARGO_PKG_VERSION"));
-
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    pyo3_log::init();
+    pytokio::init_multi_thread();
+    pyo3_asyncio::try_init(py)?;
+    m.add_function(wrap_pyfunction!(test_logging, m)?)?;
     m.add_function(wrap_pyfunction!(list_pokemon, m)?)?;
     m.add("PokedexError", py.get_type::<PokedexError>())?;
+    let submod = PyModule::new(py, "registration")?;
+    registration::init_submodule(submod)?;
+    m.add_submodule(submod)?;
 
+    let submod = PyModule::new(py, "models")?;
+    models::init_submodule(submod)?;
+    m.add_submodule(submod)?;
     Ok(())
 }
