@@ -3,8 +3,12 @@
 //! joined. This module also contains functions for getting the list of starter
 //! pokemon.
 
+use crate::database::{self, DatabaseError};
 use crate::models::Pokemon;
-use pyo3::prelude::*;
+use pyo3::{
+    exceptions::{PyKeyError, PyRuntimeError},
+    prelude::*,
+};
 use pyo3_asyncio::tokio as pytokio;
 
 mod handlers;
@@ -22,9 +26,36 @@ pub fn init_submodule(module: &PyModule) -> PyResult<()> {
 /// This function will return None on success and raise a
 /// `KeyError` on failure.
 #[pyfunction]
-#[text_signature = "(player_id, /)"]
-fn register_player(py: Python, player_id: &str) -> PyResult<PyObject> {
-    pytokio::into_coroutine(py, async move { Python::with_gil(|py| Ok(py.None())) })
+#[text_signature = "(player_id, starter, /)"]
+fn register_player(py: Python, player_id: String, starter: Pokemon) -> PyResult<PyObject> {
+    log::debug!(
+        "Entering PyO3 bridge to register_player with args ({}, {:?})",
+        player_id,
+        starter
+    );
+    pytokio::into_coroutine(py, async move {
+        if let Err(e) = database::register_player(&player_id, &starter).await {
+            log::error!("An error occurred while registering player {}", player_id);
+            match e {
+                DatabaseError::PlayerAlreadyExists => {
+                    return Python::with_gil(|_| {
+                        Err(PyKeyError::new_err(format!(
+                            "Player {} is already registered",
+                            player_id
+                        )))
+                    })
+                }
+                _ => {
+                    return Python::with_gil(|_| {
+                        Err(PyRuntimeError::new_err(
+                            "An internal error occurred. Check logs for details.",
+                        ))
+                    })
+                }
+            }
+        }
+        Python::with_gil(|py| Ok(py.None()))
+    })
 }
 
 /// Fetches the starter pokemon list.
@@ -36,7 +67,7 @@ fn register_player(py: Python, player_id: &str) -> PyResult<PyObject> {
 #[text_signature = "(/)"]
 fn get_starter_pokemon_list(py: Python) -> PyResult<Vec<Pokemon>> {
     log::error!("Here");
-    Ok(vec![Pokemon {}])
+    Ok(vec![])
 }
 
 /// Checks if a given player is registered for the game already.
