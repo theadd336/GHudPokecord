@@ -1,7 +1,6 @@
-from pokecord import pokecord_backend
+import os
+from pokecord.PokecordClient import bot
 
-print("Hello World!")
+TOKEN = os.getenv("DISCORD_TOKEN")
 
-test = pokecord_backend.sum_as_string(5, 7)
-assert test == "12"
-print(test)
+bot.run(TOKEN)
