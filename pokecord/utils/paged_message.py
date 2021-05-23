@@ -74,8 +74,6 @@ class PagedMessage:
         await self.visible_messages[-1].add_reaction('▶')
         await self.visible_messages[-1].add_reaction('⏩')
 
-        print(self.visible_messages)
-
         reaction = None
         user = None
         while True:
@@ -96,13 +94,16 @@ class PagedMessage:
 
             if str(reaction) == '⏩':
                 self.current_page = self.page_count
-                await self._change_page()                
+                await self._change_page()
+
+            # remove reaction after changing page, in case there's a delay in processing the page change
+            if reaction is not None:
+                await self.visible_messages[-1].remove_reaction(reaction, user)
 
             # wait for next reaction to be sent
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', check=self._check_sender, timeout=None)
                 print(f"Reaction: {reaction}, received from user: {user}")
-                await self.visible_messages[-1].remove_reaction(reaction, user)
             except Exception as e:
                 print(f"Error when handling paged message, excpetion: {e}")
                 break
