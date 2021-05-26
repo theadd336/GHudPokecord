@@ -1,5 +1,5 @@
 import discord
-import math
+import logging
 
 class PagedMessage:
     """
@@ -23,12 +23,12 @@ class PagedMessage:
         # the current visible page number, (0-indexed)
         self.current_page = 0
         # the max page number (0-indexed)
-        self.page_count = math.ceil(len(embeds) / page_size) - 1
+        self.page_count = len(embeds) // page_size
         # the visible messages shown on the screen. Must be multiple messages
         # because there's a limit of 1 embed per message
         self.visible_messages = [None] * page_size
-    
-    def _calculate_visible_embeds(self, page_number):
+
+    async def _calculate_visible_embeds(self, page_number):
         """
         Given a 0-indexed page number, calculate the visible embeds on it. 
         """
@@ -36,7 +36,7 @@ class PagedMessage:
         starting_index = page_number * self.page_size
         for idx in range(starting_index, starting_index + self.page_size):
             if idx >= len(self.embeds):
-                continue
+                break
             visible_embeds.append(self.embeds[idx])
         return visible_embeds
 
@@ -50,7 +50,7 @@ class PagedMessage:
         """
         Update what's visible on the page. Assumes self.current_page has already been updated.
         """
-        visible_embeds = self._calculate_visible_embeds(self.current_page)
+        visible_embeds = await self._calculate_visible_embeds(self.current_page)
         for idx, message in enumerate(self.visible_messages):
             if idx < len(visible_embeds):
                 # if there is an embed to send, send it
@@ -63,7 +63,7 @@ class PagedMessage:
         Sends the initial messages with the first set of embeds.
         """
         self.current_page = 0
-        visible_embeds = self._calculate_visible_embeds(self.current_page)
+        visible_embeds = await self._calculate_visible_embeds(self.current_page)
         for idx, embed in enumerate(visible_embeds):
             message = await self.ctx.send(embed=embed)
             self.visible_messages[idx] = message
@@ -87,7 +87,7 @@ class PagedMessage:
                     self.current_page -= 1
                     await self._change_page()
 
-            if str(reaction) == '▶':
+            if str(reaction) == '▶': 
                 if self.current_page < self.page_count:
                     self.current_page += 1
                     await self._change_page()
@@ -103,7 +103,7 @@ class PagedMessage:
             # wait for next reaction to be sent
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', check=self._check_sender, timeout=None)
-                print(f"Reaction: {reaction}, received from user: {user}")
+                logging.info(f"Reaction: {reaction}, received from user: {user}")
             except Exception as e:
-                print(f"Error when handling paged message, excpetion: {e}")
+                logging.error(f"Error when handling paged message, excpetion: {e}")
                 break

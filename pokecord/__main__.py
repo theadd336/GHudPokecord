@@ -1,18 +1,31 @@
 import asyncio
+import logging
 import os
+import sys
 from asyncio.events import AbstractEventLoop
 from asyncio.runners import _cancel_all_tasks
 from pokecord import pokecord_backend
-from pokecord.PokecordClient import bot
+from pokecord.pokecord_client import bot
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 async def main():
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
+    pokecord_backend.test_logging()
+
     """Main entry point into the pokecord application."""
     a = pokecord_backend.registration.get_starter_pokemon_list()
-    print(a)
+    logging.info(a)
     b = await pokecord_backend.registration.register_player("HI")
-    print(b)
+    logging.info(b)
     await bot.start(TOKEN)
 
 def shutdown_loop(loop: AbstractEventLoop):
