@@ -131,3 +131,5 @@ dmypy.json
 .devcontainer
 .vscode
 Cargo.lock
+
+.pokecache/
