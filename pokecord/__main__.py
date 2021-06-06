@@ -8,10 +8,20 @@ from pokecord import pokecord_backend
 from pokecord.pokecord_client import bot
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+LOG_LEVEL_ENV = os.getenv("POKEBOT_LOG_LEVEL")
+
+LOG_LEVEL_ENV_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
 
 async def main():
+    log_level = LOG_LEVEL_ENV_MAP.get(LOG_LEVEL_ENV, logging.INFO)
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+    root.setLevel(log_level)
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
@@ -26,6 +36,12 @@ async def main():
     logging.info(a)
     b = await pokecord_backend.registration.register_player("HI")
     logging.info(b)
+
+    pokemon = await pokecord_backend.list_pokemon()
+    print("Some pokemon:")
+    for name in pokemon[:20]:
+        print(f"- {name}")
+
     await bot.start(TOKEN)
 
 def shutdown_loop(loop: AbstractEventLoop):

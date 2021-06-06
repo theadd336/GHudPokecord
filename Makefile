@@ -10,3 +10,13 @@ build:
 .PHONY: run
 run:
 	python3.9 -m pokecord
+
+
+.PHONY: build-macos
+build-macos:
+	cargo build --manifest-path=./pokecord-backend/Cargo.toml
+
+.PHONY: run-macos
+run-macos: build-macos
+	cp ./pokecord-backend/target/debug/libpokecord_backend.dylib pokecord/pokecord_backend.so
+	RUST_LOG=debug python3.9 -m pokecord
