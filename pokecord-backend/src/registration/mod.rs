@@ -5,13 +5,12 @@
 
 use crate::database::{self, DatabaseError};
 use crate::models::Pokemon;
+use crate::pokedex::{Pokedex, Pokemon as ApiPokemon, PokemonSpecies, STARTER_POKEMON};
 use pyo3::{
     exceptions::{PyKeyError, PyRuntimeError},
     prelude::*,
 };
 use pyo3_asyncio::tokio as pytokio;
-
-mod handlers;
 
 // Adds all required functions into the module.
 // TODO: Macro for this to remove boilerplate?
@@ -65,9 +64,20 @@ fn register_player(py: Python, player_id: String, starter: Pokemon) -> PyResult<
 /// A `list` of `Pokemon`
 #[pyfunction]
 #[text_signature = "(/)"]
-fn get_starter_pokemon_list(py: Python) -> PyResult<Vec<Pokemon>> {
-    log::error!("Here");
-    Ok(vec![])
+fn get_starter_pokemon_list(py: Python) -> PyResult<PyObject> {
+    log::debug!("Entering PyO3 bridge to get starter pokemon");
+    pytokio::into_coroutine(py, async move {
+        let mut starter_pokemon = Vec::with_capacity(STARTER_POKEMON.len());
+        let mut pokedex = Pokedex::new();
+        for &pokemon_species in STARTER_POKEMON {
+            let api_pokemon: ApiPokemon = pokedex.get_by_name(pokemon_species).await.unwrap();
+            let pokemon_species: PokemonSpecies =
+                pokedex.get_by_name(pokemon_species).await.unwrap();
+            let pokemon = Pokemon::from_api_resources(api_pokemon, pokemon_species);
+            starter_pokemon.push(pokemon);
+        }
+        Python::with_gil(|py| Ok(starter_pokemon.into_py(py)))
+    })
 }
 
 /// Checks if a given player is registered for the game already.

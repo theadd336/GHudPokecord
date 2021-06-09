@@ -19,6 +19,36 @@ use self::cache::Cache;
 /// Base URL for all PokeAPI endpoints.
 const API_BASE: &str = "https://pokeapi.co/api/v2/";
 
+/// All starter pokemon, including eevee and picachu
+pub const STARTER_POKEMON: &'static [&'static str; 26] = &[
+    "bulbasaur",
+    "charmander",
+    "squirtle",
+    "chikorita",
+    "cyndaquil",
+    "totodile",
+    "treecko",
+    "torchic",
+    "mudkip",
+    "turtwig",
+    "chimchar",
+    "piplup",
+    "rowlet",
+    "oshawott",
+    "snivy",
+    "tepig",
+    "chespin",
+    "fennekin",
+    "froakie",
+    "litten",
+    "popplio",
+    "grookey",
+    "scorbunny",
+    "sobble",
+    "picachu",
+    "eevee",
+];
+
 /// A PokeAPI client.
 pub struct Pokedex {
     client: Client,
@@ -45,20 +75,16 @@ impl Pokedex {
     }
 
     /// Get an API resource by name.
-    pub async fn get_by_name<T: ApiResource>(
-        &mut self,
-        name: &str,
-    ) -> Result<T, Error> {
+    pub async fn get_by_name<T: ApiResource>(&mut self, name: &str) -> Result<T, Error> {
         let url = T::base_url().join(name).expect("Malformed resource name");
         self.get(url).await
     }
 
     /// Get an API resource by ID.
-    pub async fn get_by_id<T: ApiResource>(
-        &mut self,
-        id: usize,
-    ) -> Result<T, Error> {
-        let url = T::base_url().join(&id.to_string()).expect("Malformed resource name");
+    pub async fn get_by_id<T: ApiResource>(&mut self, id: usize) -> Result<T, Error> {
+        let url = T::base_url()
+            .join(&id.to_string())
+            .expect("Malformed resource name");
         self.get(url).await
     }
 
@@ -71,9 +97,7 @@ impl Pokedex {
     }
 
     /// Read an entire resource list. This may be expensive.
-    pub async fn list<T: ApiResource>(
-        &mut self,
-    ) -> Result<Vec<NamedResource<T>>, Error> {
+    pub async fn list<T: ApiResource>(&mut self) -> Result<Vec<NamedResource<T>>, Error> {
         let mut acc = Vec::new();
         let mut cursor = Some(Cursor::Begin {
             url: T::base_url(),
@@ -127,7 +151,12 @@ impl Pokedex {
         match self.cache.get(&cache_key).await {
             Ok(Some(entry)) => {
                 let now = SystemTime::now();
-                log::debug!("Found cache entry for {} with age = {:?}, ttl = {:?}", url, entry.cache_policy.age(now), entry.cache_policy.time_to_live(now));
+                log::debug!(
+                    "Found cache entry for {} with age = {:?}, ttl = {:?}",
+                    url,
+                    entry.cache_policy.age(now),
+                    entry.cache_policy.time_to_live(now)
+                );
                 match entry.cache_policy.before_request(&req, SystemTime::now()) {
                     // Cache was up to date, so use the value stored there
                     BeforeRequest::Fresh(_) => {
@@ -153,7 +182,10 @@ impl Pokedex {
                                 .after_response(&req, &res, SystemTime::now())
                             {
                                 AfterResponse::NotModified(policy, _) => {
-                                    log::debug!("Server says cache entry for {} is up to date", url);
+                                    log::debug!(
+                                        "Server says cache entry for {} is up to date",
+                                        url
+                                    );
                                     (policy, entry.body)
                                 }
                                 AfterResponse::Modified(policy, _) => {
@@ -217,8 +249,11 @@ impl Pokedex {
 
 /// Returns the image URL for a Pokemon ID
 pub fn image_url(id: usize) -> Url {
-    Url::parse(&format!("https://assets.pokemon.com/assets/cms2/img/pokedex/full/{:03}.png", id))
-        .expect("Generated an invalid image URL")
+    Url::parse(&format!(
+        "https://assets.pokemon.com/assets/cms2/img/pokedex/full/{:03}.png",
+        id
+    ))
+    .expect("Generated an invalid image URL")
 }
 
 /// Turn a relative path for an API endpoint into a fully-qualified URL.

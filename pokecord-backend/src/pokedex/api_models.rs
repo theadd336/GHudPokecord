@@ -11,7 +11,9 @@ use super::api_url;
 /// and paginated over.
 // According to https://serde.rs/lifetimes.html, we have to use this `for`-qualified lifetime instead of
 // requiring DeserializeOwned or Deserialize<'static>
-pub trait ApiResource: Debug + Clone + PartialEq + Eq + for<'de> Deserialize<'de> + Serialize {
+pub trait ApiResource:
+    Debug + Clone + PartialEq + Eq + for<'de> Deserialize<'de> + Serialize
+{
     /// The base URL for this API resource type
     fn base_url() -> Url;
 }
@@ -82,6 +84,21 @@ pub struct Pokemon {
     pub order: i32,
     /// The species this Pokémon belongs to.
     pub species: NamedResource<PokemonSpecies>,
+    /// The types for the given pokemon
+    pub types: Vec<PokemonType>,
+}
+
+/// A Pokemon. See [the API](https://pokeapi.co/docs/v2#pokemon).
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct PokemonType {
+    pub slot: u8,
+    #[serde(rename = "type")]
+    pub damage_type: NamedResource<Type>,
+}
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct Type {
+    pub id: u8,
+    pub name: String,
 }
 
 /// A species of Pokemon. See [the API](https://pokeapi.co/docs/v2#pokemonspecies)
@@ -163,6 +180,12 @@ impl PartialOrd for Pokemon {
 impl Ord for Pokemon {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.order.cmp(&other.order)
+    }
+}
+
+impl ApiResource for Type {
+    fn base_url() -> Url {
+        api_url("type/")
     }
 }
 
