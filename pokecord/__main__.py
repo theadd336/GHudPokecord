@@ -1,22 +1,48 @@
 import asyncio
+import logging
+import os
+import sys
 from asyncio.events import AbstractEventLoop
-
 from asyncio.runners import _cancel_all_tasks
 from pokecord import pokecord_backend
+from pokecord.pokecord_client import bot
 
+TOKEN = os.getenv("DISCORD_TOKEN")
+LOG_LEVEL_ENV = os.getenv("POKEBOT_LOG_LEVEL")
+
+LOG_LEVEL_ENV_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
 
 async def main():
+    log_level = LOG_LEVEL_ENV_MAP.get(LOG_LEVEL_ENV, logging.INFO)
+    root = logging.getLogger()
+    root.setLevel(log_level)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
+    pokecord_backend.test_logging()
+
     """Main entry point into the pokecord application."""
     a = pokecord_backend.registration.get_starter_pokemon_list()
-    print(a)
+    logging.info(a)
     b = await pokecord_backend.registration.register_player("HI")
-    print(b)
+    logging.info(b)
 
     pokemon = await pokecord_backend.list_pokemon()
     print("Some pokemon:")
     for name in pokemon[:20]:
         print(f"- {name}")
 
+    await bot.start(TOKEN)
 
 def shutdown_loop(loop: AbstractEventLoop):
     """Shuts down the running event loop. This code is duplicated from
