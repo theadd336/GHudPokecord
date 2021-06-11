@@ -32,10 +32,6 @@ async def main():
     pokecord_backend.test_logging()
 
     """Main entry point into the pokecord application."""
-    a = pokecord_backend.registration.get_starter_pokemon_list()
-    logging.info(a)
-    b = await pokecord_backend.registration.register_player("HI")
-    logging.info(b)
 
     pokemon = await pokecord_backend.list_pokemon()
     print("Some pokemon:")
