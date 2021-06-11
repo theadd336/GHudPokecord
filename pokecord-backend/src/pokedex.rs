@@ -19,7 +19,7 @@ use self::cache::Cache;
 /// Base URL for all PokeAPI endpoints.
 const API_BASE: &str = "https://pokeapi.co/api/v2/";
 
-/// All starter pokemon, including eevee and picachu
+/// All starter pokemon, including eevee and pikachu
 pub const STARTER_POKEMON: &'static [&'static str; 26] = &[
     "bulbasaur",
     "charmander",
@@ -45,7 +45,7 @@ pub const STARTER_POKEMON: &'static [&'static str; 26] = &[
     "grookey",
     "scorbunny",
     "sobble",
-    "picachu",
+    "pikachu",
     "eevee",
 ];
 

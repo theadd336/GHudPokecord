@@ -30,6 +30,8 @@ pub struct Pokemon {
     next_level_xp: u32,
     evolution_level: Option<u8>,
     capture_timestamp: u64,
+    is_shiny: bool,
+    form: Option<String>,
     image_path: String,
 }
 
@@ -56,6 +58,8 @@ impl Pokemon {
             evolution_level: None,
             capture_timestamp: 0,
             image_path: String::from(""),
+            is_shiny: false,
+            form: None
         }
     }
 }
